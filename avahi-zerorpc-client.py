@@ -3,26 +3,22 @@ import time
 import zerorpc
 import subprocess
 
-def get_service_ip(service_name):
-    srv = None
-
+def get_service(service_name):
     while True:
-        avahi = subprocess.check_output(["avahi-browse","-rpt","_remote._tcp"])
-        reader = csv.reader(avahi.decode().split('\n'), delimiter=';')
-        for row in reader:
-            if row and row[0] == "=" and service_name in row[3]:
-                print("We have IP: " + row[7])
+        avahi = subprocess.check_output(["avahi-browse","-rptk","_remote._tcp"])
+        avahi = csv.reader(avahi.decode().split('\n'), delimiter=';')
+        for row in avahi:
+            if row and row[0] == "=" and service_name in row:
                 srv = row[7] + ":" + row[8]
-        if srv:
-            break
-        else:
-            time.sleep(10)
-    return srv
+                print("Service " + service_name + " discovered: " + srv)
+                return srv
+        
+        time.sleep(10)
 
 service_name = "sna-gw"
-ip = get_service_ip(service_name)
+service = get_service(service_name)
 c = zerorpc.Client()
-c.connect("tcp://%s" % ip)
+c.connect("tcp://%s" % service)
 
 for request in range (10):
     print(c.hello("RPC"))
